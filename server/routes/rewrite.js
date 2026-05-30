@@ -16,59 +16,75 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'Text must be at least 10 characters.' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY not set on server.' });
+    return res.status(500).json({ error: 'GROQ_API_KEY not set on server.' });
   }
 
   const prompt = `${LEVEL_PROMPTS[level || 0]}\n\nOutput ONLY the rewritten text, nothing else.\n\n---\n\n${text.slice(0, 4000)}`;
 
-  // Set SSE headers
+  // Set SSE headers for streaming
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 
   try {
-    // Use the non-streaming endpoint first to confirm it works,
-    // then stream word by word from our side
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-    const geminiRes = await fetch(url, {
+    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          maxOutputTokens: 1024,
-          temperature: 0.7
-        }
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert at adapting text complexity. Rewrite texts naturally and fluently. Output ONLY the rewritten text — no commentary, no explanations, no preamble.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 1024,
+        temperature: 0.7,
+        stream: true
       })
     });
 
-    const data = await geminiRes.json();
-
-    if (!geminiRes.ok) {
-      const errMsg = data.error?.message || 'Gemini API error';
-      console.error('Gemini error:', errMsg);
+    if (!groqRes.ok) {
+      const err = await groqRes.json();
+      const errMsg = err.error?.message || 'Groq API error';
+      console.error('Groq error:', errMsg);
       res.write(`data: ${JSON.stringify({ error: errMsg })}\n\n`);
       res.end();
       return;
     }
 
-    const fullText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    // Stream the response
+    const reader = groqRes.body.getReader();
+    const decoder = new TextDecoder();
 
-    if (!fullText) {
-      res.write(`data: ${JSON.stringify({ error: 'No response from Gemini' })}\n\n`);
-      res.end();
-      return;
-    }
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-    // Simulate streaming by sending words one by one
-    const words = fullText.split(' ');
-    for (const word of words) {
-      res.write(`data: ${JSON.stringify({ text: word + ' ' })}\n\n`);
-      await new Promise(r => setTimeout(r, 20));
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+
+      for (const line of lines) {
+        const data = line.slice(6).trim();
+        if (!data || data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          const text = parsed.choices?.[0]?.delta?.content;
+          if (text) {
+            res.write(`data: ${JSON.stringify({ text })}\n\n`);
+          }
+        } catch (e) { /* skip malformed chunks */ }
+      }
     }
 
     res.write('data: [DONE]\n\n');

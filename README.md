@@ -2,55 +2,51 @@
 
 > Drag a slider. Watch any text rewrite itself from 5-year-old to PhD level in real time.
 
-Built with React + Node.js + Claude API. Features streaming output and debounced API calls.
+**Live Demo → [tldr-me.netlify.app](https://tldr-me.netlify.app)**
 
 ---
 
-## Project Structure
+## What it does
 
-```
-tldr-me/
-├── client/          ← React frontend (Vite)
-├── server/          ← Node.js + Express backend
-└── README.md
-```
+Paste any dense article, research paper, or text. Drag the complexity slider across 5 levels and watch it rewrite instantly — streamed word by word.
 
----
-
-## Quick Start
-
-### 1. Install everything
-```bash
-# Terminal 1 — backend
-cd server
-npm install
-
-# Terminal 2 — frontend
-cd client
-npm install
-```
-
-### 2. Add your API key
-In `/server`, create a `.env` file:
-```
-ANTHROPIC_API_KEY=sk-ant-your-key-here
-PORT=3001
-```
-
-### 3. Run both servers
-```bash
-# Terminal 1
-cd server && npm run dev
-
-# Terminal 2
-cd client && npm run dev
-```
-
-### 4. Open the app
-Visit: http://localhost:5173
+| Level | Audience |
+|-------|----------|
+| 🧒 5-Year-Old | Simple words, playful tone |
+| 🎒 Middle School | Clear, relatable, everyday language |
+| 🎓 College | Structured, analytical, accessible |
+| 💼 Expert | Technical, precise, information-dense |
+| 🔬 PhD | Academic, rigorous, full terminology |
 
 ---
 
-## Deploy
+## Tech Stack
 
-See deployment steps in the setup guide.
+**Frontend**
+- React + Vite
+- Custom debounce hook (prevents excessive API calls)
+- SSE streaming for real-time word-by-word output
+- Deployed on Netlify
+
+**Backend**
+- Node.js + Express
+- Groq API (Llama 3.3 70B)
+- Server-Sent Events (SSE) streaming
+- Deployed on Render
+
+---
+
+## Key Features
+
+- **Debounced API calls** — waits for the user to stop moving the slider before firing, reducing API calls by ~80%
+- **Streaming output** — text appears word by word in real time, not all at once
+- **5 complexity levels** — each with a carefully engineered prompt
+- **Abort controller** — cancels in-flight requests when the user changes level mid-stream
+
+---
+
+## Built by
+
+**Anshika Mishra** — B.Tech CSE (Cybersecurity & Digital Forensics), VIT Bhopal
+
+[Portfolio](https://anshika-mishra-portfolio.netlify.app) · [LinkedIn](https://linkedin.com/in/anshika-mishra268) · [GitHub](https://github.com/Anshikamishra-167)

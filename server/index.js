@@ -6,10 +6,8 @@ const rewriteRoute = require('./routes/rewrite');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Allow ALL origins — simplest fix for portfolio projects
 app.use(cors());
 app.options('*', cors());
-
 app.use(express.json());
 
 app.use('/api/rewrite', rewriteRoute);

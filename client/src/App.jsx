@@ -5,7 +5,6 @@ import { OutputBox } from './components/OutputBox'
 import { useDebounce } from './hooks/useDebounce'
 import { DEBOUNCE_MS } from './constants/levels'
 
-// ⚡ Backend URL — hardcoded for reliability
 const API_URL = 'https://tldr-me-server.onrender.com'
 
 const styles = {
@@ -124,7 +123,7 @@ export default function App() {
           <OutputBox output={output} isLoading={isLoading} error={error} copied={copied} onCopy={handleCopy} />
         </main>
         <footer style={styles.footer}>
-          powered by gemini 2.0 flash · streaming · 100% free
+          powered by llama 3.3 · groq · 100% free
         </footer>
       </div>
     </>
