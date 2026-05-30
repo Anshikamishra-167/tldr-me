@@ -6,25 +6,14 @@ const rewriteRoute = require('./routes/rewrite');
 const app = express();
 const PORT = process.env.PORT || 3001;
  
-// Allow all localhost ports + production URL
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true)
-    if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
-      return callback(null, true)
-    }
-    const allowed = process.env.CLIENT_URL || 'https://your-app.netlify.app'
-    if (origin === allowed) return callback(null, true)
-    callback(new Error('Not allowed by CORS'))
-  }
-}));
- 
+// Allow all origins — works for local dev and production
+app.use(cors());
 app.use(express.json());
  
 // Routes
 app.use('/api/rewrite', rewriteRoute);
  
-// Health check
+// Health check — visit http://localhost:3001/health to confirm server is up
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'TL;DR Me server is running' });
 });
@@ -32,3 +21,4 @@ app.get('/health', (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
 });
+ 
