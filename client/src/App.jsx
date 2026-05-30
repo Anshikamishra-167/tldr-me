@@ -49,7 +49,7 @@ export default function App() {
  
     try {
       // Calls our Express backend which proxies to Gemini
-     const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3001'
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://tldr-me-server.onrender.com'
 const response = await fetch(`${apiUrl}/api/rewrite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
