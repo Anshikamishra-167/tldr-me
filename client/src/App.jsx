@@ -4,9 +4,9 @@ import { ComplexitySlider } from './components/ComplexitySlider'
 import { OutputBox } from './components/OutputBox'
 import { useDebounce } from './hooks/useDebounce'
 import { LEVELS, DEBOUNCE_MS } from './constants/levels'
-
+ 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-
+ 
 const styles = {
   app: {
     maxWidth: '860px',
@@ -98,7 +98,7 @@ const styles = {
     animation: 'fadeUp 0.6s 0.25s ease both',
   },
 }
-
+ 
 // Inject fadeUp animation once
 if (!document.getElementById('app-style')) {
   const s = document.createElement('style')
@@ -111,62 +111,63 @@ if (!document.getElementById('app-style')) {
   `
   document.head.appendChild(s)
 }
-
+ 
 // ─── App ──────────────────────────────────────────────────────────────────────
-
-export default function App() {
+ 
+export default function App() 
+{
   const [inputText, setInputText] = useState('')
   const [sliderValue, setSliderValue] = useState(0)
   const [output, setOutput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
-
+ 
   // Debounce BOTH the text and slider value together.
   // We combine them into one object so a change in either triggers the debounce.
   const debouncedInput = useDebounce(
     { text: inputText, level: sliderValue },
     DEBOUNCE_MS
   )
-
+ 
   const abortRef = useRef(null) // lets us cancel in-flight requests
-
+ 
   // ── API call ────────────────────────────────────────────────────────────────
   const rewrite = useCallback(async (text, level) => {
     if (!text || text.trim().length < 20) return
-
+ 
     // Cancel any previous in-flight request
     if (abortRef.current) abortRef.current.abort()
     abortRef.current = new AbortController()
-
+ 
     setIsLoading(true)
     setError('')
     setOutput('')
-
+ 
     try {
-      const response = await fetch('/api/rewrite', {
+      const response = await fetch('http://localhost:3001/api/rewrite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, level }),
         signal: abortRef.current.signal,
       })
-
+ 
       if (!response.ok) {
         const data = await response.json()
         throw new Error(data.error || 'Server error. Is the backend running?')
       }
-
+ 
       // Read the SSE stream
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
-
+ 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-
+ 
         const chunk = decoder.decode(value)
         const lines = chunk.split('\n').filter((l) => l.startsWith('data: '))
-
+ 
         for (const line of lines) {
           const data = line.slice(6) // strip "data: "
           if (data === '[DONE]') break
@@ -188,14 +189,14 @@ export default function App() {
       setIsLoading(false)
     }
   }, [])
-
+ 
   // ── Trigger rewrite when debounced input changes ─────────────────────────────
   useEffect(() => {
     if (debouncedInput.text.trim().length > 20) {
       rewrite(debouncedInput.text, debouncedInput.level)
     }
   }, [debouncedInput, rewrite])
-
+ 
   // ── Copy handler ─────────────────────────────────────────────────────────────
   const handleCopy = () => {
     if (!output) return
@@ -204,14 +205,14 @@ export default function App() {
       setTimeout(() => setCopied(false), 2000)
     })
   }
-
+ 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <>
       {/* Background blobs */}
       <div style={styles.blobLeft} />
       <div style={styles.blobRight} />
-
+ 
       <div style={styles.app}>
         {/* Header */}
         <header style={styles.header}>
@@ -219,16 +220,16 @@ export default function App() {
           <h1 style={styles.title}>TL;DR Me</h1>
           <p style={styles.subtitle}>drag the slider · watch the world change</p>
         </header>
-
+ 
         {/* Main card */}
         <main style={styles.card}>
           <div style={styles.cardGlow} />
-
+ 
           {/* Text input */}
           <TextInput value={inputText} onChange={setInputText} />
-
+ 
           <div style={styles.divider} />
-
+ 
           {/* Complexity slider */}
           <ComplexitySlider
             value={sliderValue}
@@ -236,7 +237,7 @@ export default function App() {
             isLoading={isLoading}
             hasText={inputText.trim().length > 20}
           />
-
+ 
           {/* Output */}
           <OutputBox
             output={output}
@@ -246,12 +247,11 @@ export default function App() {
             onCopy={handleCopy}
           />
         </main>
-
+ 
         {/* Footer */}
         <footer style={styles.footer}>
           debounced calls · streaming output · claude-sonnet-4-20250514
         </footer>
       </div>
     </>
-  )
-}
+  )}
