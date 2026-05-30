@@ -4,7 +4,10 @@ import { ComplexitySlider } from './components/ComplexitySlider'
 import { OutputBox } from './components/OutputBox'
 import { useDebounce } from './hooks/useDebounce'
 import { DEBOUNCE_MS } from './constants/levels'
- 
+
+// ⚡ Backend URL — hardcoded for reliability
+const API_URL = 'https://tldr-me-server.onrender.com'
+
 const styles = {
   app: { maxWidth: '860px', margin: '0 auto', padding: '2.5rem 1.5rem 5rem', position: 'relative', zIndex: 1 },
   blobLeft: { position: 'fixed', top: '20%', left: '-10%', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(200,180,255,0.05) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 },
@@ -18,14 +21,14 @@ const styles = {
   divider: { borderTop: '1px solid var(--border)', margin: '1.5rem 0' },
   footer: { textAlign: 'center', marginTop: '2rem', fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--muted)', opacity: 0.4, animation: 'fadeUp 0.6s 0.25s ease both' },
 }
- 
+
 if (!document.getElementById('app-style')) {
   const s = document.createElement('style')
   s.id = 'app-style'
   s.textContent = `@keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }`
   document.head.appendChild(s)
 }
- 
+
 export default function App() {
   const [inputText, setInputText] = useState('')
   const [sliderValue, setSliderValue] = useState(0)
@@ -33,39 +36,37 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
- 
-  const debouncedInput = useDebounce({ text: inputText, level: sliderValue }, DEBOUNCE_MS)
+
+  const debouncedText = useDebounce(inputText, DEBOUNCE_MS)
+  const debouncedLevel = useDebounce(sliderValue, DEBOUNCE_MS)
   const abortRef = useRef(null)
- 
+
   const rewrite = useCallback(async (text, level) => {
     if (!text || text.trim().length < 20) return
- 
+
     if (abortRef.current) abortRef.current.abort()
     abortRef.current = new AbortController()
- 
+
     setIsLoading(true)
     setError('')
     setOutput('')
- 
+
     try {
-      // Calls our Express backend which proxies to Gemini
-    const apiUrl = import.meta.env.VITE_API_URL || 'https://tldr-me-server.onrender.com'
-const response = await fetch(`${apiUrl}/api/rewrite`, {
+      const response = await fetch(`${API_URL}/api/rewrite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, level }),
         signal: abortRef.current.signal,
       })
- 
+
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
-        throw new Error(data.error || `Server error ${response.status} — is the backend running?`)
+        throw new Error(data.error || `Server error ${response.status}`)
       }
- 
-      // Read SSE stream
+
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
- 
+
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
@@ -90,13 +91,13 @@ const response = await fetch(`${apiUrl}/api/rewrite`, {
       setIsLoading(false)
     }
   }, [])
- 
+
   useEffect(() => {
-    if (debouncedInput.text.trim().length > 20) {
-      rewrite(debouncedInput.text, debouncedInput.level)
+    if (debouncedText.trim().length > 20) {
+      rewrite(debouncedText, debouncedLevel)
     }
-  }, [debouncedInput, rewrite])
- 
+  }, [debouncedText, debouncedLevel, rewrite])
+
   const handleCopy = () => {
     if (!output) return
     navigator.clipboard.writeText(output).then(() => {
@@ -104,7 +105,7 @@ const response = await fetch(`${apiUrl}/api/rewrite`, {
       setTimeout(() => setCopied(false), 2000)
     })
   }
- 
+
   return (
     <>
       <div style={styles.blobLeft} />
